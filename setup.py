@@ -11,5 +11,5 @@ setup(
     license='LGPL',
     packages=find_packages(),
     scripts=['u2b2bili.py'],
-    install_requires=['youtube-dl']
+    install_requires=['youtube_dl']
 )

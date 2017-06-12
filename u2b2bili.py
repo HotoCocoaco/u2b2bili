@@ -1,40 +1,47 @@
 from __future__ import unicode_literals
+
 import os
 import sys
+
 import youtube_dl
+
+ydl_opts = {
+    'outtmpl': '%(playlist_index)02d-%(title)s.%(ext)s',
+    'writesubtitles': True,
+    'writethumbnail': False,
+    'subtitleslangs': ['zh-CN']
+}
+ffmpeg_command = 'ffmpeg -y -i "%(video_file_name)s" -vf "subtitles=%(sub_file_name)s" -c:v libx264 -preset %(' \
+                 'preset)s -crf %(crf)d -c:a aac -b:a %(audio_bit_rate)dk "%(output_file_name)s.%(output_format)s" '
+ffmpeg_opts = {
+    'preset': 'slower',
+    'crf': 24,
+    'audio_bit_rate': 128,
+    'output_format': 'flv'
+}
 
 
 def down_video(urls):
-    # 下载参数
-    ydl_opts = {
-        'outtmpl': '%(playlist_index)d-%(title)s.%(ext)s',
-        'writesubtitles': True,
-        'writethumbnail': True,
-        'subtitleslangs': ['zh-CN']
-    }
-
     with youtube_dl.YoutubeDL(ydl_opts) as ydl:
         ydl.download(urls)
     pass
 
 
 def burn_subtitles(del_original_file=True):
+    exts = ['.mp4', '.mkv', 'webm']
     for i in os.listdir("./"):
-        if os.path.splitext(i)[1] == ('.mp4' or '.mkv' or '.webp'):
-            print(i)
-            os.system('ffmpeg -y -i "%s" -vf "subtitles=%s" -c:v libx264 -preset slower -crf 24 -c:a aac -b:a 192k "%s.flv"' % (
-                i, os.path.splitext(i)[0] + '.zh-CN.vtt', os.path.splitext(i)[0]))
-
-    if del_original_file:
-        for i in os.listdir("./"):
-            if os.path.splitext(i)[1] == ('.mp4' or '.mkv' or '.webp'):
-                os.remove(i)
-                os.remove(os.path.splitext(i)[0] + '.zh-CN.vtt')
+        if os.path.splitext(i)[1] in exts:
+            ffmpeg_opts['video_file_name'] = i
+            ffmpeg_opts['sub_file_name'] = os.path.splitext(i)[0] + '.' + ydl_opts['subtitleslangs'][0] + '.vtt'
+            ffmpeg_opts['output_file_name'] = os.path.splitext(i)[0]
+            os.system(ffmpeg_command % ffmpeg_opts)
+            if del_original_file:
+                os.remove(ffmpeg_opts['video_file_name'])
+                os.remove(ffmpeg_opts['sub_file_name'])
     pass
 
 
 def main():
-    # 未传递参数直接跳出
     if len(sys.argv) == 1:
         print('ERROR: 请至少输入一个URL')
         return
